@@ -1,0 +1,28 @@
+server:
+  port: 8080 
+
+spring:
+  application:
+    name: api-gateway 
+  cloud:
+    gateway:
+      routes:
+        - id: prestamo-multa-service
+          uri: lb://PRESTAMO.MULTA 
+          predicates:
+            - Path=/api/prestamos/**, /api/multas/**
+
+        - id: microservicio-notificacion-usuario
+          uri: lb://notificacion.usuario
+          predicates:
+            - Path=/api/v1/notificaciones-externas/**
+        
+        - id: microservicio-libro-externo
+          uri: lb://microservicio-libro 
+          predicates:
+            - Path=/api/v1/libros-externos/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/ 
