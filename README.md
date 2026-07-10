@@ -1,102 +1,112 @@
-Sistema de Biblioteca
+# Biblioteca Microservicios
 
+Sistema de gestión de biblioteca desarrollado con arquitectura de microservicios en Spring Boot que permite gestionar préstamos, multas, notificaciones y el catálogo de libros.
 
+## Integrantes
 
-Descripción
+- Sebastian Leon - MicroservicioPrestamo-Multa
+- Samuel Enrique Rodriguez - MicroservicioLibro y NotificacionMicroservicio
+- Diego Ignacio Alexander Bustamante - ApiGateway y EurekaServer
 
-Sistema de gestión de biblioteca desarrollado con arquitectura de microservicios en Spring Boot que permite tanto gestionar préstamos, multas, las notificaciones y el catálogo de libros.
+## Microservicios
 
+| Microservicio | Puerto |
+|---------------|--------|
+| EurekaServer | 8761 |
+| ApiGateway | 8080 |
+| MicroservicioLibro | 8081 |
+| NotificacionMicroservicio | 8082 |
+| MicroservicioPrestamo-Multa | 8083 |
 
+## Ejecución Local
 
-Integrantes
+### Requisitos
+- Java 21
+- Maven
+- MySQL
 
-Sebastian Leon - MicroservicioPrestamo-Multa
+### Pasos
 
-Samuel Enrique Rodriguez - MicroservicioLibro y NotificacionMicroservicio
+1. Crear bases de datos en MySQL:
+```sql
+CREATE DATABASE db_microservicio_libro_dev;
+CREATE DATABASE db_notificacion_usuario_dev;
+CREATE DATABASE db_prestamo_multa_dev;
+```
 
-Diego Ignacio Alexander Bustamante - ApiGateway y EurekaServer
+2. Ejecutar en orden:
+   - EurekaServer
+   - ApiGateway
+   - MicroservicioLibro
+   - NotificacionMicroservicio
+   - MicroservicioPrestamo-Multa/biblioteca-main
 
+3. Panel Eureka: http://localhost:8761
 
+## Ejecución con Docker
 
-Microservicios
+### Requisitos
+- Docker
+- Docker Compose
 
-EurekaServer (puerto 8761) - Servidor de descubrimiento
+### Pasos
 
-ApiGateway (puerto 8080) - Puerta de entrada centralizada
+1. Clonar el repositorio:
+```bash
+git clone https://github.com/samurodriguez-commits/biblioteca-microservicios.git
+cd biblioteca-microservicios
+```
 
-MicroservicioLibro (puerto 8081) - Gestión de libros
+2. (Opcional) Editar contraseña de MySQL en `.env`:
+```
+MYSQL_ROOT_PASSWORD=Admin123
+```
 
-NotificacionMicroservicio (puerto 8082) - Gestión de notificaciones
+3. Construir y levantar todos los servicios:
+```bash
+docker-compose up --build
+```
 
-MicroservicioPrestamo-Multa (puerto 8083) - Gestión de préstamos y multas
+4. Esperar unos minutos a que todos los servicios se registren en Eureka.
 
+5. Panel Eureka: http://localhost:8761
 
+6. Para detener los servicios:
+```bash
+docker-compose down
+```
 
-Rutas del Gateway
+### Servicios en Docker
 
-GET/api/prestamos
+| Servicio | URL |
+|----------|-----|
+| ApiGateway | http://localhost:8080 |
+| EurekaServer | http://localhost:8761 |
+| MicroservicioLibro Swagger | http://localhost:8081/swagger-ui.html |
+| NotificacionMicroservicio Swagger | http://localhost:8082/swagger-ui.html |
+| MicroservicioPrestamo-Multa Swagger | http://localhost:8083/swagger-ui.html |
 
-POST/api/prestamos
+### Comandos útiles
 
-GET/api/multas
+Ver logs de un servicio específico:
+```bash
+docker-compose logs -f microservicio-libro
+```
 
-POST/api/multas
+Reconstruir un solo servicio:
+```bash
+docker-compose up --build -d microservicio-libro
+```
 
-GET/api/libros
+## Swagger
 
-POST/api/libros
+- MicroservicioLibro: http://localhost:8081/swagger-ui.html
+- NotificacionMicroservicio: http://localhost:8082/swagger-ui.html
+- MicroservicioPrestamo-Multa: http://localhost:8083/swagger-ui.html
 
-GET/api/notificaciones
+## Rutas del Gateway
 
-POST/api/notificaciones
-
-
-
-Swagger
-
-MicroservicioLibro: http://localhost:8081/swagger-ui.html
-
-NotificacionMicroservicio: http://localhost:8082/swagger-ui.html
-
-MicroservicioPrestamo-Multa: http://localhost:8083/swagger-ui.html
-
-
-
-Ejecución Local
-
-Requisitos: Java 21, Maven, MySQL
-
-
-
-1\. Clonar repositorio:
-
-git clone https://github.com/sebasleon-007/biblioteca-microservicios.git
-
-
-
-2\. Crear bases de datos en MySQL:
-
-CREATE DATABASE db\_microservicio\_libro\_dev;
-
-CREATE DATABASE db\_notificacion\_usuario\_dev;
-
-CREATE DATABASE db\_prestamo\_multa\_dev;
-
-
-
-3\. Ejecutar en orden:
-
-EurekaServer
-
-ApiGateway
-
-MicroservicioLibro
-
-NotificacionMicroservicio
-
-MicroservicioPrestamo-Multa/biblioteca-main
-
-
-
-4\. Panel Eureka: http://localhost:8761
-
+- GET/POST /api/libros
+- GET/POST /api/prestamos
+- GET/POST /api/multas
+- GET/POST /api/notificaciones

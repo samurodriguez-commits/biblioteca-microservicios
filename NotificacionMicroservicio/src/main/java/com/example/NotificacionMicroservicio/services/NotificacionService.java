@@ -1,15 +1,13 @@
 package com.example.NotificacionMicroservicio.services;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import com.example.NotificacionMicroservicio.DTO.NotificacionDTO;
 import com.example.NotificacionMicroservicio.DTO.NotificacionRequestDTO;
+import com.example.NotificacionMicroservicio.DTO.NotificacionResponseDTO;
 import com.example.NotificacionMicroservicio.DTO.UsuarioDTO;
 import com.example.NotificacionMicroservicio.model.Notificacion;
 import com.example.NotificacionMicroservicio.repository.NotificacionRepository;
@@ -21,116 +19,73 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Transactional
 public class NotificacionService {
-
     @Autowired
     private NotificacionRepository notificacionRepository;
-
     @Autowired
-    private WebClient.Builder webClientBuilder;
+    private UsuarioService usuarioService;
 
-    private NotificacionDTO mapToDTO(Notificacion n) {
-
-    String nombreUsuario = "Usuario desconocido";
-    String nombreLibro = "Libro desconocido";
-
-    try {
-        UsuarioDTO usuario = webClientBuilder.build()
-                .get()
-                .uri("http://localhost:8082/api/v1/usuarios/" + n.getUsuarioId())
-                .retrieve()
-                .bodyToMono(UsuarioDTO.class)
-                .block();
-        if (usuario != null) {
-            nombreUsuario = usuario.getNombre();
+    private NotificacionResponseDTO mapToDTO(Notificacion notificacion) {
+        String nombreUsuario = "Usuario no encontrado";
+        try {
+            if (notificacion.getUsuarioId() != null) {
+                UsuarioDTO usuario = usuarioService.buscarPorId(notificacion.getUsuarioId());
+                if (usuario != null) nombreUsuario = usuario.getNombre();
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo obtener usuario ID {}", notificacion.getUsuarioId());
         }
-    } catch (Exception e) {
-        log.warn(
-            "No se pudo obtener usuario {}",
-            n.getUsuarioId()
-        );
-    }
-    try {
-        LibroDTO libro = webClientBuilder.build()
-                .get()
-                .uri("http://localhost:8081/api/v1/libros/" + n.getLibroId())
-                .retrieve()
-                .bodyToMono(LibroDTO.class)
-                .block();
-        if (libro != null) {
-            nombreLibro = libro.getNombre();
-        }
-    } catch (Exception e) {
-        log.warn(
-            "No se pudo obtener libro {}",
-            n.getLibroId()
-        );
-    }
-    return NotificacionDTO.builder()
-            .id(n.getId())
-            .usuarioId(n.getUsuarioId())
+        return NotificacionResponseDTO.builder()
+            .id(notificacion.getId())
+            .mensaje(notificacion.getMensaje())
+            .tipo(notificacion.getTipo())
             .nombreUsuario(nombreUsuario)
-            .libroId(n.getLibroId())
-            .nombreLibro(nombreLibro)
-            .mensaje(n.getMensaje())
-            .fechaEnvio(n.getFechaEnvio())
-            .leida(n.getLeida())
-            .tipo(n.getTipo())
+            .fechaCreacion(notificacion.getFechaCreacion())
+            .leido(notificacion.getLeido())
             .build();
-}
+    }
 
-    public NotificacionDTO buscarPorId(Integer id) {
+    public List<NotificacionResponseDTO> obtenerTodas() {
+        return notificacionRepository.findAll().stream()
+            .map(this::mapToDTO)
+            .collect(Collectors.toList());
+    }
 
+    public NotificacionResponseDTO buscarPorId(Integer id) {
         Notificacion notificacion = notificacionRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Notificación no encontrada"));
+            .orElseThrow(() -> new RuntimeException("Notificacion no encontrada"));
         return mapToDTO(notificacion);
     }
 
-    public List<NotificacionDTO> listarPorUsuario(Integer usuarioId) {
-
-        return notificacionRepository.findByUsuarioId(usuarioId)
-                .stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<NotificacionResponseDTO> listarPorUsuario(Integer usuarioId) {
+        return notificacionRepository.findByUsuarioId(usuarioId).stream()
+            .map(this::mapToDTO)
+            .collect(Collectors.toList());
     }
 
-    public NotificacionDTO crearNotificacion(NotificacionRequestDTO request) {
-
-    Notificacion notificacion = Notificacion.builder()
-            .usuarioId(request.getUsuarioId())
-            .libroId(request.getLibroId())
+    public NotificacionResponseDTO crearNotificacion(NotificacionRequestDTO request) {
+        Notificacion notificacion = Notificacion.builder()
             .mensaje(request.getMensaje())
             .tipo(request.getTipo())
-            .fechaEnvio(LocalDate.now())
-            .leida(false)
+            .usuarioId(request.getUsuarioId())
+            .fechaCreacion(java.time.LocalDateTime.now())
+            .leido(false)
             .build();
+        return mapToDTO(notificacionRepository.save(notificacion));
+    }
 
-    return mapToDTO(notificacionRepository.save(notificacion));
-}
-
-    public NotificacionDTO actualizarNotificacion(
-            Integer id,
-            NotificacionRequestDTO request) {
-
-        Notificacion notif = notificacionRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Notificación no encontrada"));
-
-        notif.setMensaje(request.getMensaje());
-        notif.setTipo(request.getTipo());
-
-        return mapToDTO(notificacionRepository.save(notif));
+    public NotificacionResponseDTO actualizarNotificacion(Integer id, NotificacionRequestDTO request) {
+        Notificacion notificacion = notificacionRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Notificacion no encontrada"));
+        if (request.getMensaje() != null) notificacion.setMensaje(request.getMensaje());
+        if (request.getTipo() != null) notificacion.setTipo(request.getTipo());
+        if (request.getUsuarioId() != null) notificacion.setUsuarioId(request.getUsuarioId());
+        return mapToDTO(notificacionRepository.save(notificacion));
     }
 
     public String eliminarNotificacion(Integer id) {
-
-        if (!notificacionRepository.existsById(id)) {
-            throw new RuntimeException(
-                    "No se puede eliminar, notificación no encontrada");
-        }
-
-        notificacionRepository.deleteById(id);
-
-        return "Notificación eliminada correctamente";
+        Notificacion notificacion = notificacionRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Notificacion no encontrada"));
+        notificacionRepository.delete(notificacion);
+        return "Notificacion eliminada";
     }
 }
